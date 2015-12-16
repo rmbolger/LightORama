@@ -1,46 +1,44 @@
 <#
 .SYNOPSIS
-  Create Light-O-Rama S3 compatible timing grids from Audacity exported label files.
+Create Light-O-Rama S3 compatible timing grids from Audacity exported label files.
 
 .DESCRIPTION
-This is a Powershell port of John Storms' audacity2lor.pl script. All credit for the idea and original implementation should go to him. A friend of mine asked me to write this because he didn't want to hassle with Perl on Windows. For tons of info and help on Light-O-Rama hardware and sequencing, visit 
-John's site:
+This is a Powershell port of John Storms' audacity2lor.pl script. All credit for the idea and original implementation should go to him. A friend of mine asked me to write this because he didn't want to hassle with Perl on Windows. For tons of info and help on Light-O-Rama hardware and sequencing, visit John's site:
 http://listentoourlights.com
 
-The script takes a file with a single label/timing track exported from Audacity and generates XML snippets for the timing grid in an LOR sequence. Optionally, it can also generate channel and track XML snippets to map MIDI notes to LOR channels based on the polyphonic transition from the Queen Mary
-Vamp plugin.
+The script takes a file with a single label/timing track exported from Audacity and generates XML snippets for the timing grid in an LOR sequence. Optionally, it can also generate channel and track XML snippets to map MIDI notes to LOR channels based on the polyphonic transition from the Queen Mary Vamp plugin.
 
 The expected use case is that the user will use Audacity to export label tracks, use this script to convert them to LOR snippets, capture the script's output to a file, and copy/paste the XML snippets into the appropriate locations in the LOR generated LMS files.
 
 .PARAMETER LabelFile
-  File path for the exported label/timing file.
+File path for the exported label/timing file.
 
 .PARAMETER SaveID
-  Number used to uniquely identify the timing grid. Defaults to 0.
+Number used to uniquely identify the timing grid. Defaults to 0.
 
 .PARAMETER SplitByLabel
-  If True, attempt to map label information to Midi notes and give each a LOR channel. For use with Polyphonic translation from Audacity.
+If True, attempt to map label information to Midi notes and give each a LOR channel. For use with Polyphonic translation from Audacity.
 
 .EXAMPLE
-  .\Audacity2Lor.ps1 labels.txt
-  Process a non-polyphonic label file and output the XML to the console
+.\Audacity2Lor.ps1 labels.txt
+Process a non-polyphonic label file and output the XML to the console
 
 .EXAMPLE
-  .\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel
-  Process a polyphonic label file and output the XML to the console
+.\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel
+Process a polyphonic label file and output the XML to the console
 
 .EXAMPLE
-  .\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel | Out-File out.xml
-  Process a polyphonic label file and output the XML to a file
+.\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel | Out-File out.xml
+Process a polyphonic label file and output the XML to a file
 
 .LINK
-  https://github.com/rmbolger/LightORama
+https://github.com/rmbolger/LightORama
 .LINK
-  http://www1.lightorama.com/sequencing-software-download/
+http://www1.lightorama.com/sequencing-software-download/
 .LINK
-  http://audacityteam.org/
+http://audacityteam.org/
 .LINK
-  http://nutcracker123.com/nutcracker/releases/Vamp_Plugin.exe
+http://nutcracker123.com/nutcracker/releases/Vamp_Plugin.exe
 #>
 
 #Requires -version 3.0
@@ -64,8 +62,6 @@ $labels = Import-Csv -Delimiter "`t" $LabelFile -Header "Start","End","Label" |
         End = [int][Math]::Round([double]::Parse($_.End) * 100);
         Label = $_.Label; }
     }
-
-# Build the XML for timings which is basically one element for each unique start or end value
 
 # add all unique values to an array (including a 0 value) and sort it
 $timings = @([int]0)
@@ -98,11 +94,11 @@ $xml.WriteAttributeString("type", "freeform")
 $timings | %{
     $xml.WriteStartElement("timing")
     $xml.WriteAttributeString("centisecond", $_)
-    $xml.WriteEndElement(); # /timing
+    $xml.WriteEndElement()
 }
 
-# close out the timing grid section
-$xml.WriteEndElement(); # /timingGrid
+# end the timing grid section
+$xml.WriteEndElement()
 
 # Add the sections for polyphonic mapping if necessary
 if ($SplitByLabel)
@@ -126,10 +122,13 @@ if ($SplitByLabel)
     # sort the original labels into groups of MIDI notes
     $noteLabels = $labels | select Start,End,
         @{L="NoteName";E={
+
             $num = [int][Math]::Round([double]::Parse($_.Label));
+
             # use the note name if it has a match in the table
             if ($midi.ContainsKey($num)) { $midi[$num] }
             else { $num }
+
         } } | group NoteName | sort Name
 
     # start the channels section
@@ -153,18 +152,18 @@ if ($SplitByLabel)
             $xml.WriteAttributeString("endCentisecond", $_.End)
             $xml.WriteAttributeString("startIntensity", 100)
             $xml.WriteAttributeString("endIntensity", 0)
-            $xml.WriteEndElement(); # /effect
+            $xml.WriteEndElement()
         }
 
         # end the channel
-        $xml.WriteEndElement(); # /channel
+        $xml.WriteEndElement()
         $chanIndex++
     }
 
     # end the channels section
-    $xml.WriteEndElement(); # /channels
+    $xml.WriteEndElement()
 
-    # start the tracks section
+    # start the tracks/track/channels section
     $xml.WriteComment("TRACKS ELEMENT")
     $xml.WriteStartElement("tracks")
     $xml.WriteStartElement("track")
@@ -176,15 +175,19 @@ if ($SplitByLabel)
     0..($chanIndex-1) | %{
         $xml.WriteStartElement("channel")
         $xml.WriteAttributeString("savedIndex", $_)
-        $xml.WriteEndElement() # /channel
+        $xml.WriteEndElement()
     }
 
-    # end the tracks section
-    $xml.WriteEndElement(); # /channels
-    $xml.WriteStartElement("loopLevels");
-    $xml.WriteEndElement(); # /loopLevels
-    $xml.WriteEndElement(); # /track
-    $xml.WriteEndElement(); # /tracks
+    # end the channels section
+    $xml.WriteEndElement()
+
+    # add an empty loopLevels element (because that was in the original script)
+    $xml.WriteStartElement("loopLevels")
+    $xml.WriteEndElement()
+
+    # end the tracks/track section
+    $xml.WriteEndElement()
+    $xml.WriteEndElement()
 }
 
 # close out the XML and write it to output
