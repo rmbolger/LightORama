@@ -14,8 +14,9 @@ The expected use case is that the user will use Audacity to export label tracks,
 
 I would recommend created a very basic LOR LMS file to paste into. Specifically, Start a new musical sequence, add 1 channel and no timings, save, then paste in the XML snippets.
 
-### Software You'll Need (Assuming Windows):
+### Software You'll Need
 
+* Windows and Powershell v3 or later *(Installed by default on Windows 8 and later, downloadable for Windows 7 SP1 [here](http://www.microsoft.com/en-us/download/details.aspx?id=34595))*
 * [Audacity](http://audacityteam.org/)
 * [Queen Mary Vamp plugins for Audacity](http://nutcracker123.com/nutcracker/releases/Vamp_Plugin.exe)
 * [Light-O-Rama ShowTime Sequencing Suite](http://www1.lightorama.com/sequencing-software-download/)
@@ -24,4 +25,18 @@ I would recommend created a very basic LOR LMS file to paste into. Specifically,
 
 ```Powershell
 .\Audacity2Lor.ps1 [-LabelFile] <String> [[-SaveID] <Int32>] [[-SplitByLabel]]
+```
+
+### Examples
+
+```
+# Process a non-polyphonic label file and output the XML to the console
+.\Audacity2Lor.ps1 labels.txt
+
+# Process a polyphonic label file and output the XML to the console
+.\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel
+
+# Process a polyphonic label file and output the XML to a file
+.\Audacity2Lor.ps1 poly-labels.txt 0 -SplitByLabel | Out-File out.xml
+
 ```
